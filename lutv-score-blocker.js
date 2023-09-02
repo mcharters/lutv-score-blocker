@@ -1,5 +1,53 @@
 // create a regex that matches scores in the format of 1-0
 var scoreRegex = /\d+-\d+/;
+// a regex that matches two names followed by a colon
+var quoteRegex = /^([A-Za-z]+ [A-Za-z]+):(.*)/;
+
+var whitelist = [
+  'Match Preview',
+  'Starts in',
+  'Extended Highlights',
+  'Match Action',
+];
+
+var blacklist = [
+  'win',
+  'victory',
+  'triumph',
+  'success',
+  'conquest',
+  'achievement',
+  'gain',
+  'loss',
+  'lose',
+  'lost',
+  'defeat',
+  'failure',
+  'surrender',
+  'beating',
+  'rout',
+  'setback',
+  'whipping',
+  'drubbing',
+  'thrashing',
+  'collapse',
+  'licking',
+  'upset',
+  'trouncing',
+  'flop',
+  'draw',
+  'tie',
+  'deadlock',
+  'stalemate',
+  'standoff',
+];
+
+let regexs = new Map();
+for (let word of blacklist) {
+  // We want a global, case-insensitive replacement.
+  // @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+  regexs.set(word, new RegExp('\\b' + word + '\\b', 'gi'));
+}
 
 /**
  * Substitutes emojis into text nodes.
@@ -25,8 +73,25 @@ function replaceText (node) {
       return;
     }
 
-    // remove scores from content
-    node.textContent = node.textContent.replace(scoreRegex, '🙈');
+    // remove scores and quotes from content
+    var content = node.textContent;
+
+    // see if the content matches quoteRegex and replace unless it's in the whitelist
+    if (quoteRegex.test(content)) {
+      var match = quoteRegex.exec(content);
+      console.log(match[1]);
+      if (whitelist.indexOf(match[1]) === -1) {
+          content = content.replace(quoteRegex, '$1: 🙊');
+      }
+    }
+    content = content.replace(scoreRegex, '🙈');
+
+    // replace all the words in the blacklist
+    for (let [_, regex] of regexs) {
+      content = content.replace(regex, '🙉');
+    }
+
+    node.textContent = content;
   }
   else {
     // This node contains more than just text, call replaceText() on each
