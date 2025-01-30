@@ -79,7 +79,6 @@ function replaceText (node) {
     // see if the content matches quoteRegex and replace unless it's in the whitelist
     if (quoteRegex.test(content)) {
       var match = quoteRegex.exec(content);
-      console.log(match[1]);
       if (whitelist.indexOf(match[1]) === -1) {
           content = content.replace(quoteRegex, '$1: 🙊');
       }
@@ -98,7 +97,29 @@ function replaceText (node) {
     // of its children.
     for (let i = 0; i < node.childNodes.length; i++) {
       replaceText(node.childNodes[i]);
-    }    
+    }
+  }
+}
+
+// We want to keep any placeholder images as such
+IMG_PLACEHOLDER = 'https://video.leedsunited.com/_assets/images/placeholder.png';
+
+// These placeholders get replaced, so we'll need to change them back
+const imageObserver = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+      // This DOM change was a change to the src attribute of an image
+      if (mutation.target.src !== IMG_PLACEHOLDER) {
+        mutation.target.src = IMG_PLACEHOLDER;
+      }
+    }
+  })
+});
+
+// This will flag an image as potentially needing to stay a placeholder
+function watchImg(img) {
+  if (img.src === IMG_PLACEHOLDER) {
+    imageObserver.observe(img, { attributes: true });
   }
 }
 
@@ -115,10 +136,24 @@ const observer = new MutationObserver((mutations) => {
       for (let i = 0; i < mutation.addedNodes.length; i++) {
         const newNode = mutation.addedNodes[i];
         replaceText(newNode);
+
+        if (newNode.nodeType === Node.ELEMENT_NODE) {
+          if (newNode.tagName === 'IMG') {
+            watchImg(newNode);
+          }
+
+          const imgs = newNode.querySelectorAll?.('img');
+          if (imgs) {
+            imgs.forEach((img) => {
+              watchImg(img);
+            });
+          }
+        }
       }
     }
   });
 });
+
 observer.observe(document.body, {
   childList: true,
   subtree: true
